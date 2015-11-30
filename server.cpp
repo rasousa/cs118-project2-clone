@@ -22,8 +22,8 @@ void error(string msg)
 int main(int argc, char **argv)
 {
     int sockfd, portno, cwnd;
-    socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
+    socklen_t clilen = sizeof(serv_addr);
     
     char packet[PACKET_SIZE];
     
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     while(1)
     {
         //recvfrom dumps the message into packet
-        if((recvfrom(sockfd, packet, PACKET_SIZE, 0, (struct sockaddr *) &cli_addr, sizeof(cli_addr))) < 0)
+        if((recvfrom(sockfd, packet, PACKET_SIZE, 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
     }
     

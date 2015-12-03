@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     }
     
     portno = atoi(argv[1]);
-    //cwnd = atoi(argv[2]);
+    cwnd = atoi(argv[2]);
     
     
     //Setup socket connection - SOCK_DGRAM is for UDP
@@ -55,22 +55,22 @@ int main(int argc, char **argv)
     Packet packet, ack;
     memset(&packet, 0, sizeof(packet));
     memset(&ack, 0, sizeof(ack));
+    
     while(1)
     {
-        //recvfrom dumps the message into packet
+				//recvfrom dumps the message into packet
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
         
-        seq_num = packet.seq_num;
-        
-        cout << seq_num << endl;
-        
-        //PSEUDO CODE:
-        //if packet is received
-        //for seq = 0 start new file and write to it
-        //for packet in order write to end of file
-        //for out of order packet send ACK back with old seq_num
-        //if end is received end write to file
+        //Got a request from client for a file
+        if(packet.type == REQ)
+        		{
+        				//PSEUDOCODE
+        				//open file
+        				//break file into packets
+        				//send cwnd packets at a time to the client
+        				//upon ACK, shift the window and send new packet
+        		}
         
     }
     

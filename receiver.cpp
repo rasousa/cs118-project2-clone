@@ -2,10 +2,14 @@
 //This file performs the Go-Back-N keeping track of the window
 //Usage: ./server port cwnd (./server 10000 4)
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>      // define structures like hostent
+#include <stdlib.h>
+#include <strings.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <string>
 #include <iostream>
@@ -26,23 +30,35 @@ int main(int argc, char **argv)
     int sockfd, portno, cwnd;
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t servlen = sizeof(serv_addr);
+    string filename;
+    struct hostent *server;
     
+    if(argc != 4)
+    {
+        error("Argument error");
+    }
     
-    portno = atoi(argv[1]);
-    if(argc == 3)
-        cwnd = atoi(argv[2]);
+    portno = atoi(argv[2]);
+    filename = argv[3];
+    
+    server = gethostbyname(argv[1]);
+    if(server == NULL)
+    {
+        error("Host not fount");
+    }
+                       
     
     
     //Setup socket connection - SOCK_DGRAM is for UDP
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(sockfd < 0)
         error("ERROR creating socket");
-    memset((char *)&cli_addr, 0, sizeof(cli_addr));
-    cli_addr.sin_family = AF_INET;
-    cli_addr.sin_addr.s_addr = INADDR_ANY;
-    cli_addr.sin_port = htons(portno);
+    memset((char *)&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+    serv_addr.sin_port = htons(portno);
     
-    if (bind(sockfd, (struct sockaddr *) &cli_addr, sizeof(cli_addr)) < 0)
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         error("ERROR on binding");
     
     cout << "Server bound correctly on port "<< portno << endl;
@@ -51,9 +67,17 @@ int main(int argc, char **argv)
     int seq_num = 0;
     int bytes_loaded = 0;
     int total_bytes = 0;
-    Packet packet, ack;
+    Packet packet, ack, req;
     memset(&packet, 0, sizeof(packet));
     memset(&ack, 0, sizeof(ack));
+    memset(&req, 0, sizeof(req));
+    req.type = REQ;
+    req.server_portno = ntohs(serv_addr.sin_port);
+    req.client_portno = portno;
+    req.seq_num = 0;
+    req.size = filename.length();
+    strcpy(req.data, filename.c_str());
+    
     ofstream file;
     
     while(1)

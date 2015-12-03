@@ -1,0 +1,20 @@
+CS 118 Project 2
+Rebecca Sousa, 904050968
+Alec Henthorne
+
+Project 2 Report
+
+Protocol:
+We decided to use Go-Back-N as our reliable data transfer protocol.
+
+Header format:
+We formulated packets with the following information:
+		type (data, ack, or request for file);
+    server port number
+    client port number
+    sequence number
+    size in bytes
+    data
+This was implemented as a struct in a header file, with enumerated types.
+
+Difficulties:

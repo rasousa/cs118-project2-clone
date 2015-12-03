@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
     int sockfd, portno, cwnd;
     struct sockaddr_in serv_addr, cli_addr;
-    socklen_t clilen = sizeof(serv_addr);
+    socklen_t servlen = sizeof(serv_addr);
     
     
     portno = atoi(argv[1]);
@@ -37,12 +37,12 @@ int main(int argc, char **argv)
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(sockfd < 0)
         error("ERROR creating socket");
-    memset((char *)&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(portno);
+    memset((char *)&cli_addr, 0, sizeof(cli_addr));
+    cli_addr.sin_family = AF_INET;
+    cli_addr.sin_addr.s_addr = INADDR_ANY;
+    cli_addr.sin_port = htons(portno);
     
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+    if (bind(sockfd, (struct sockaddr *) &cli_addr, sizeof(cli_addr)) < 0)
         error("ERROR on binding");
     
     cout << "Server bound correctly on port "<< portno << endl;
@@ -55,13 +55,15 @@ int main(int argc, char **argv)
     memset(&packet, 0, sizeof(packet));
     memset(&ack, 0, sizeof(ack));
     ofstream file;
-
+    
     while(1)
     {
 				//recvfrom dumps the message into packet
-        if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
+        if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &serv_addr, &servlen)) < 0)
             error("ERROR receiving message");
         
+        
+        //Basically here is an INIT packet that sends the file size and the filename in packet.data
         if(packet.type == INIT)
         {
             file.open(packet.data);
@@ -69,23 +71,30 @@ int main(int argc, char **argv)
             bytes_loaded = 0;
         }
         
-        //PSEUDO CODE:
-        //if packet is received
-        //for seq = 0 start new file and write to it
-        //for packet in order write to end of file
-        //for out of order packet send ACK back with old seq_num
-        //if end is received end write to file
-        if(packet.type == DATA && seq_num == packet.seq_num)
+        if(packet.type == DATA)
         {
+            if(seq_num == packet.seq_num)
+            {
+                
+                bytes_loaded = (bytes_loaded >= total_bytes) ? total_bytes : bytes_loaded + packet.size;
+                
+                seq_num++;
+                
+                file << packet.data;
+            }
             
-            bytes_loaded = (bytes_loaded >= total_bytes) ? total_bytes : bytes_loaded + packet.size;
-            
-            seq_num++;
-            
-            file << packet.data;
-            
+            //Let's send an ack pack. If it's out of order it will send a duplicate.
+            memset(&ack, 0, sizeof(ack));
             ack.seq_num = seq_num;
+            ack.type = ACK;
+            ack.size = bytes_loaded;
+            ack.server_portno = ntohs(serv_addr.sin_port);
+            ack.client_portno = portno;
+            sprintf(ack.data, "ACK %d", seq_num);
             
+            cout << ack.data << endl;
+            if (sendto(sockfd, &ack, sizeof(ack), 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+                error("ERROR sending ACK");
         }
         
         if(total_bytes == bytes_loaded)

@@ -3,7 +3,7 @@
 
 using namespace std;
 
-enum PType { DATA, ACK, REQ, INIT }; //Might need a few more types
+enum PType { DATA, ACK, INIT, REQ}; //Might need a few more types
 
 struct Packet {
     PType type;

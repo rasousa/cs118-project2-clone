@@ -1,7 +1,7 @@
-all: client server
-client : client.cpp
-	g++ -o client client.cpp -I.
-server : server.cpp
-	g++ -o server server.cpp -I.
+all: sender receiver
+sender : sender.cpp
+	g++ -o sender sender.cpp -I.
+receiver : receiver.cpp
+	g++ -o receiver receiver.cpp -I.
 clean: 
-	-rm *.o $(objects) client server
+	-rm *.o $(objects) sender receiver

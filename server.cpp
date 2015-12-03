@@ -9,6 +9,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include "packet.h"
 
@@ -27,13 +28,10 @@ int main(int argc, char **argv)
     socklen_t clilen = sizeof(serv_addr);
     
     
-    if (argc < 3) {
-       fprintf(stderr,"usage: port cwnd\n");
-       exit(0);
-    }
-    
     portno = atoi(argv[1]);
-    //cwnd = atoi(argv[2]);
+    
+    if(argc == 3)
+        cwnd = atoi(argv[2]);
     
     
     //Setup socket connection - SOCK_DGRAM is for UDP
@@ -52,18 +50,24 @@ int main(int argc, char **argv)
     
     int response_length;
     int seq_num = 0;
+    int bytes_loaded = 0;
+    int total_bytes = 0;
     Packet packet, ack;
     memset(&packet, 0, sizeof(packet));
     memset(&ack, 0, sizeof(ack));
+    ofstream file;
     while(1)
     {
         //recvfrom dumps the message into packet
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
         
-        seq_num = packet.seq_num;
-        
-        cout << seq_num << endl;
+        if(packet.type == INIT)
+        {
+            file.open(packet.data);
+            total_bytes = packet.size;
+            bytes_loaded = 0;
+        }
         
         //PSEUDO CODE:
         //if packet is received
@@ -71,6 +75,23 @@ int main(int argc, char **argv)
         //for packet in order write to end of file
         //for out of order packet send ACK back with old seq_num
         //if end is received end write to file
+        if(packet.type == DATA && seq_num == packet.seq_num)
+        {
+            
+            bytes_loaded = (bytes_loaded >= total_bytes) ? total_bytes : bytes_loaded + packet.size;
+            
+            seq_num++;
+            
+            file << packet.data;
+            
+            ack.seq_num = seq_num;
+            
+        }
+        
+        if(total_bytes == bytes_loaded)
+        {
+            file.close();
+        }
         
     }
     

@@ -26,8 +26,6 @@ int main(int argc, char **argv)
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t clilen = sizeof(serv_addr);
     
-    char packet[PACKET_SIZE];
-    char response[PACKET_SIZE];
     
     if (argc < 3) {
        fprintf(stderr,"usage: port cwnd\n");
@@ -51,18 +49,28 @@ int main(int argc, char **argv)
         error("ERROR on binding");
     
     cout << "Server bound correctly on port "<< portno << endl;
-    int count = 0;
+    
+    int response_length;
+    int seq_num = 0;
+    Packet packet, ack;
+    memset(&packet, 0, sizeof(packet));
+    memset(&ack, 0, sizeof(ack));
     while(1)
     {
         //recvfrom dumps the message into packet
-        if((recvfrom(sockfd, packet, PACKET_SIZE, 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
+        if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
         
-        sprintf(response, "ack %d", count++);
-        if (sendto(sockfd, response, strlen(response), 0, (struct sockaddr *)&cli_addr, clilen) < 0)
-            error("ERROR sending message");
-        cout << packet << endl;
+        seq_num = packet.seq_num;
         
+        cout << seq_num << endl;
+        
+        //PSEUDO CODE:
+        //if packet is received
+        //for seq = 0 start new file and write to it
+        //for packet in order write to end of file
+        //for out of order packet send ACK back with old seq_num
+        //if end is received end write to file
         
     }
     

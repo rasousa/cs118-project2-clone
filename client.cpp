@@ -10,10 +10,13 @@
 #include <netdb.h>      // define structures like hostent
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <string>
 #include <iostream>
+
+#include "packet.h"
 
 using namespace std;
 
@@ -30,6 +33,7 @@ int main(int argc, char *argv[])
     string filename;
     struct sockaddr_in serv_addr;
     struct hostent *server; //contains tons of information, including the server's IP address
+    socklen_t servlen = sizeof(serv_addr);
 
     char buffer[256];
     if (argc < 4) {
@@ -57,17 +61,46 @@ int main(int argc, char *argv[])
     
     if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) //establish a connection to the server
         error("ERROR connecting");
+        
+    int response_length;
+    int seq_num = 0;
+    Packet req, packet, ack;
+    memset(&req, 0, sizeof(req));
+    memset(&packet, 0, sizeof(packet));
+    memset(&ack, 0, sizeof(ack));
+    
+    //Create request packet for file
+    req.type = REQ;
+    req.server_portno = portno;
+    req.client_portno = sockfd;
+    req.seq_num = 0;
+    req.size = filename.length();
+    strcpy(req.data, filename.c_str());
 
 		//Request file from server by sending the file name 
-    n = write(sockfd,filename.c_str(),filename.length()); //write to the socket
+    //n = write(sockfd,filename.c_str(),filename.length());
+    n = sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *) &serv_addr, servlen);
     if (n < 0) 
          error("ERROR writing to socket");
     
-    memset(buffer,0,256);
-    n = read(sockfd,buffer,255); //read from the socket
-    if (n < 0) 
-         error("ERROR reading from socket");
-    printf("%s\n",buffer);	//print server's response
+    //Wait to receive file from server
+    while (1) 
+    {
+				//recvfrom dumps the message into packet
+        if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &serv_addr, &servlen)) < 0)
+            error("ERROR receiving message");
+        
+        seq_num = packet.seq_num;
+        
+        cout << seq_num << endl;
+        
+        //PSEUDO CODE:
+        //if packet is received
+        //for seq = 0 start new file and write to it
+        //for packet in order write to end of file
+        //for out of order packet send ACK back with old seq_num
+        //if end is received end write to file
+    }
     
     close(sockfd); //close socket
     

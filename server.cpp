@@ -29,7 +29,6 @@ int main(int argc, char **argv)
     
     
     portno = atoi(argv[1]);
-    
     if(argc == 3)
         cwnd = atoi(argv[2]);
     
@@ -56,9 +55,10 @@ int main(int argc, char **argv)
     memset(&packet, 0, sizeof(packet));
     memset(&ack, 0, sizeof(ack));
     ofstream file;
+
     while(1)
     {
-        //recvfrom dumps the message into packet
+				//recvfrom dumps the message into packet
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
         
@@ -92,6 +92,7 @@ int main(int argc, char **argv)
         {
             file.close();
         }
+
         
     }
     

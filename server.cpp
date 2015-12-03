@@ -1,5 +1,6 @@
 //server.cpp is what sends the packets to the client
 //This file performs the Go-Back-N keeping track of the window
+//Usage: ./server port cwnd (./server 10000 4)
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -27,6 +28,11 @@ int main(int argc, char **argv)
     
     char packet[PACKET_SIZE];
     char response[PACKET_SIZE];
+    
+    if (argc < 3) {
+       fprintf(stderr,"usage: port cwnd\n");
+       exit(0);
+    }
     
     portno = atoi(argv[1]);
     //cwnd = atoi(argv[2]);

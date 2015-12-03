@@ -1,7 +1,7 @@
 
 /*
- A simple client in the internet domain using TCP
- Usage: ./client hostname port (./client 192.168.0.151 10000)
+ A simple client in the internet domain using UDP
+ Usage: ./client hostname port filename (./client 192.168.0.151 10000 hello.html)
  */
 #include <stdio.h>
 #include <sys/types.h>
@@ -27,17 +27,20 @@ int main(int argc, char *argv[])
 {
     int sockfd; //Socket descriptor
     int portno, n;
+    string filename;
     struct sockaddr_in serv_addr;
     struct hostent *server; //contains tons of information, including the server's IP address
 
     char buffer[256];
-    if (argc < 3) {
-       fprintf(stderr,"usage %s hostname port\n", argv[0]);
+    if (argc < 4) {
+       fprintf(stderr,"usage: %s hostname port filename\n", argv[0]);
        exit(0);
     }
     
     portno = atoi(argv[2]);
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); //create a new socket
+    filename = argv[3];
+    
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0); //create a new socket
     if (sockfd < 0) 
         error("ERROR opening socket");
     
@@ -54,12 +57,9 @@ int main(int argc, char *argv[])
     
     if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) //establish a connection to the server
         error("ERROR connecting");
-    
-    printf("Please enter the message: ");
-    memset(buffer,0, 256);
-    fgets(buffer,255,stdin);	//read message
-    
-    n = write(sockfd,buffer,strlen(buffer)); //write to the socket
+
+		//Request file from server by sending the file name 
+    n = write(sockfd,filename.c_str(),filename.length()); //write to the socket
     if (n < 0) 
          error("ERROR writing to socket");
     

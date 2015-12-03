@@ -9,9 +9,9 @@
 #include <string>
 #include <iostream>
 
-using namespace std;
+#include "packet.h"
 
-const int PACKET_SIZE = 100;
+using namespace std;
 
 void error(string msg)
 {
@@ -26,15 +26,17 @@ int main(int argc, char **argv)
     socklen_t clilen = sizeof(serv_addr);
     
     char packet[PACKET_SIZE];
+    char response[PACKET_SIZE];
     
     portno = atoi(argv[1]);
-    cwnd = atoi(argv[2]);
+    //cwnd = atoi(argv[2]);
     
     
     //Setup socket connection - SOCK_DGRAM is for UDP
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if(sockfd < 0)
         error("ERROR creating socket");
+    memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
@@ -42,11 +44,20 @@ int main(int argc, char **argv)
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         error("ERROR on binding");
     
+    cout << "Server bound correctly on port "<< portno << endl;
+    int count = 0;
     while(1)
     {
         //recvfrom dumps the message into packet
         if((recvfrom(sockfd, packet, PACKET_SIZE, 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
+        
+        sprintf(response, "ack %d", count++);
+        if (sendto(sockfd, response, strlen(response), 0, (struct sockaddr *)&cli_addr, clilen) < 0)
+            error("ERROR sending message");
+        cout << packet << endl;
+        
+        
     }
     
 }

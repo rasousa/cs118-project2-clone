@@ -35,7 +35,8 @@ int main(int argc, char **argv)
     
     if(argc != 4)
     {
-        error("Argument error");
+        fprintf(stderr,"usage: server port filename\n");
+        exit(0);
     }
     
     portno = atoi(argv[2]);
@@ -58,8 +59,11 @@ int main(int argc, char **argv)
     bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
     serv_addr.sin_port = htons(portno);
     
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-        error("ERROR on binding");
+    memset((char *)&cli_addr, 0, sizeof(cli_addr));
+    cli_addr.sin_family = AF_INET;
+    cli_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    cli_addr.sin_port = htons(portno);
+    
     
     cout << "Server bound correctly on port "<< portno << endl;
     
@@ -77,8 +81,16 @@ int main(int argc, char **argv)
     req.seq_num = 0;
     req.size = filename.length();
     strcpy(req.data, filename.c_str());
+
+    
+    
+    
+    if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&serv_addr, servlen) < 0) {
+        error("ERROR sending request");
+    }
     
     ofstream file;
+    file.open("testing.txt");
     
     while(1)
     {
@@ -86,11 +98,10 @@ int main(int argc, char **argv)
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &serv_addr, &servlen)) < 0)
             error("ERROR receiving message");
         
-        
+        cout << req.size << endl;
         //Basically here is an INIT packet that sends the file size and the filename in packet.data
         if(packet.type == INIT)
         {
-            file.open(packet.data);
             total_bytes = packet.size;
             bytes_loaded = 0;
         }

@@ -112,28 +112,40 @@ int main(int argc, char **argv)
             		if(packets[curr_pkt].size == 0)
             		{
             				packets[curr_pkt].type = DATA;
-										packets[curr_pkt].server_portno = serv_addr.sin_port;
-										packets[curr_pkt].client_portno = sockfd;
-										packets[curr_pkt].seq_num = total_bytes;
+                            packets[curr_pkt].server_portno = serv_addr.sin_port;
+                            packets[curr_pkt].client_portno = sockfd;
+                            packets[curr_pkt].seq_num = curr_pkt;
             		}
             		
             		//Add byte to packet data
             		packets[curr_pkt].data[ packets[curr_pkt].size++ ] = c;
             		total_bytes++;
-            				
             }
             
             file.close();
             
+            Packet init;
+            memset(&init, 0, sizeof(init));
+            init.type = INIT;
+            init.size = total_bytes;
+            
+            if (sendto(sockfd, &init, sizeof(init), 0, (struct sockaddr *)&serv_addr, clilen) < 0) {
+                error("ERROR sending INIT");
+            }
+            
             //Send initial packets to client
             for(int i=0; i < cwnd; i++)
             {
-            		if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
-            		(struct sockaddr *)&cli_addr, clilen) < 0)
-                	error("ERROR sending DATA");
-            		if(base == seq_num)
-            				start_timer();
-            		seq_num++;
+                Packet temp = packets[seq_num];
+                cout << seq_num << ":" << temp.seq_num << "=" << endl;
+                cout << temp.data << endl;
+                
+                if (sendto(sockfd, &temp, sizeof(temp), 0, (struct sockaddr *)&cli_addr, clilen) < 0) {
+                    error("ERROR sending DATA");
+                }
+                if(base == seq_num)
+                        start_timer();
+                seq_num++;
             } 
             cout << "Sending initial packets to client" << endl;
         				
@@ -168,8 +180,8 @@ int main(int argc, char **argv)
             (struct sockaddr *)&cli_addr, clilen) < 0)
                 error("ERROR sending DATA");
             if(base == seq_num)
-            				start_timer();
-            		seq_num++;
+                start_timer();
+            seq_num++;
         }
         
     } //end of while

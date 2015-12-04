@@ -42,6 +42,7 @@ void stop_timer()
 int main(int argc, char **argv)
 {
     int sockfd, portno, cwnd;
+    float pl, pc;
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t clilen = sizeof(serv_addr);
     
@@ -52,6 +53,8 @@ int main(int argc, char **argv)
     
     portno = atoi(argv[1]);
     cwnd = atoi(argv[2]);
+    pl = 100*atof(argv[3]);
+    pc = 100*atof(argv[4]);
     
     //Setup socket connection - SOCK_DGRAM is for UDP
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -138,8 +141,8 @@ int main(int argc, char **argv)
             for(int i=0; i < cwnd; i++)
             {
                 Packet temp = packets[seq_num];
-                cout << seq_num << ":" << temp.seq_num << "=" << endl;
-                cout << temp.data << endl;
+                //cout << seq_num << ":" << temp.seq_num << "=" << endl;
+                //cout << temp.data << endl;
                 
                 if (sendto(sockfd, &temp, sizeof(temp), 0, (struct sockaddr *)&cli_addr, clilen) < 0) {
                     error("ERROR sending DATA");
@@ -166,8 +169,10 @@ int main(int argc, char **argv)
         
         //Check for timeout
         secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-        
-        if (startTime != -1 && secondsPassed >= TIMEOUT)
+        cout << "seconds passed = " << secondsPassed << endl;
+        cout << "start time = " << startTime << endl;
+        if (secondsPassed >= TIMEOUT)
+
         {
             cout << "Sender timed out, resending packets starting from " << base << endl;
         		//Resend all packets up to current sequence number
@@ -192,6 +197,20 @@ int main(int argc, char **argv)
                 start_timer();
             seq_num++;
             cout << "Sent packet with sequence number " << seq_num-1 << endl;
+        }
+        
+        int plrand = rand()%100;
+        int pcrand = rand()%100;
+        
+        if (pl > plrand)
+        {
+            cout << "Packet number: " << packet.seq_num << " lost." << endl;
+            continue;
+        }
+        else if (pc > pcrand)
+        {
+            cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
+            continue;
         }
         
     } //end of while

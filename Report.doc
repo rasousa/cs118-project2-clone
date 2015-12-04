@@ -1,6 +1,6 @@
 CS 118 Project 2
 Rebecca Sousa, 904050968
-Alec Henthorne
+Alec Henthorne, 504200776
 
 Project 2 Report
 
@@ -12,7 +12,7 @@ We formulated packets with the following information:
 		type (data, ack, or request for file);
     server port number
     client port number
-    sequence number
+    sequence number in bytes
     size in bytes
     data
 This was implemented as a struct in a header file, with enumerated types.

@@ -1,12 +1,12 @@
 //server.cpp is what sends the packets to the client
 //This file performs the Go-Back-N keeping track of the window
-//Usage: ./server port cwnd (./server 10000 4)
+//Usage: ./receiver host port filename (./receiver 192.1.52.113 10000 hello.txt)
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>      // define structures like hostent
-#include <stdlib.h>
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>

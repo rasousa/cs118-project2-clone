@@ -9,12 +9,22 @@ We decided to use Go-Back-N as our reliable data transfer protocol.
 
 Header format:
 We formulated packets with the following information:
-		type (data, ack, or request for file);
-    server port number
-    client port number
-    sequence number in bytes
-    size in bytes
-    data
+		-type (data, ack, initiate file, request file);
+    -server port number
+    -client port number
+    -sequence number
+    -size in bytes
+    -data
 This was implemented as a struct in a header file, with enumerated types.
 
+Timeouts:
+-Measured by comparing the clock time to a global variable for the start time.
+
+Implementation notes:
+-Rebecca primarily worked on the sender, and Alec primarily worked on the receiver.
+-Both aided in testing and debugging
+
 Difficulties:
+-Mixup in terminology for client/server and sender/receiver
+		-Fixed by renaming files to sender.cpp and receiver.cpp
+-Clilen initialization deleted by accident, causing errors in sending

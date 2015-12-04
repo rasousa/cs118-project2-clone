@@ -101,6 +101,8 @@ int main(int argc, char **argv)
             error("ERROR receiving message");
         
         //Basically here is an INIT packet that sends the file size and the filename in packet.data
+        
+        print_packet(&packet);
         if(packet.type == INIT)
         {
             total_bytes = packet.size;
@@ -132,7 +134,6 @@ int main(int argc, char **argv)
                 seq_num++;
                 
                 file << packet.data;
-            }
             
             //Let's send an ack pack. If it's out of order it will send a duplicate.
             memset(&ack, 0, sizeof(ack));
@@ -146,6 +147,7 @@ int main(int argc, char **argv)
             cout << ack.data << endl;
             if (sendto(sockfd, &ack, sizeof(ack), 0, (struct sockaddr *)&serv_addr, servlen) < 0)
                 error("ERROR sending ACK");
+            }
         }
         
         if(total_bytes == bytes_loaded)

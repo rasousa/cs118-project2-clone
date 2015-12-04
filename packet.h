@@ -13,3 +13,14 @@ struct Packet {
     int size;
     char data[PACKET_SIZE];
 };
+
+void print_packet(Packet *packet)
+{
+    cout << "Type: " << packet->type << endl;
+    cout << "Server Port: " << packet->server_portno << endl;
+    cout << "Client Port: " << packet->client_portno << endl;
+    cout << "Sequence Number: " << packet->seq_num << endl;
+    cout << "Size: " << packet->size << endl;
+    cout << "Data: " << endl;
+    cout << packet->data << endl;
+}

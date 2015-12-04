@@ -93,6 +93,8 @@ int main(int argc, char **argv)
             error("ERROR receiving message");
         
         //Got a request from client for a file
+        
+        print_packet(&packet);
         if(packet.type == REQ)
         {
         		//Open file and break into packets
@@ -143,7 +145,7 @@ int main(int argc, char **argv)
                     error("ERROR sending DATA");
                 }
                 if(base == seq_num)
-                        start_timer();
+                    start_timer();
                 seq_num++;
             } 
             cout << "Sending initial packets to client" << endl;
@@ -157,21 +159,24 @@ int main(int argc, char **argv)
         		base = packet.seq_num + 1;
         		if(base == seq_num)
             		stop_timer();
-            else
+                else
             		start_timer();
         		cout << "Sender received ack " << packet.seq_num << endl;
         }
         
         //Check for timeout
         secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
+        
         if (startTime != -1 && secondsPassed >= TIMEOUT)
         {
-        		cout << "Sender timed out, resending packets starting from " << base << endl;
+            cout << "Sender timed out, resending packets starting from " << base << endl;
         		//Resend all packets up to current sequence number
             for(int i=base; i < seq_num-1; i++)
             {
-            		if (sendto(sockfd, &packets[i], sizeof(packets[i]), 0, 
-            		(struct sockaddr *)&cli_addr, clilen) < 0)
+                Packet temp = packets[i];
+                cout << seq_num << ":" << temp.seq_num << "=" << endl;
+                cout << temp.data << endl;
+                if (sendto(sockfd, &packets[i], sizeof(packets[i]), 0, (struct sockaddr *)&cli_addr, clilen) < 0)
                 	error("ERROR sending DATA");
 
             } 
@@ -184,7 +189,7 @@ int main(int argc, char **argv)
             (struct sockaddr *)&cli_addr, clilen) < 0)
                 error("ERROR sending DATA");
             if(base == seq_num)
-            		start_timer();
+                start_timer();
             seq_num++;
             cout << "Sent packet with sequence number " << seq_num-1 << endl;
         }

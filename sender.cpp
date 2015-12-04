@@ -11,16 +11,32 @@
 #include <iostream>
 #include <fstream>
 
+#include <ctime>
+#include <cstdlib>
+
 #include "packet.h"
 
 using namespace std;
 
 const int MAX_PKTS = 100;
 
+clock_t startTime;
+const int TIMEOUT = 5;
+
 void error(string msg)
 {
     cerr << msg << endl;
     exit(1);
+}
+
+void start_timer()
+{
+		startTime = clock();
+}
+
+void stop_timer()
+{
+		startTime = 0;
 }
 
 int main(int argc, char **argv)
@@ -66,8 +82,10 @@ int main(int argc, char **argv)
     
     int response_length;
     int seq_num = 0;
-    int bytes_loaded = 0;
+    int base = 0;
     int total_bytes = 0;
+    
+    double secondsPassed;
     
     while(1)
     {
@@ -107,23 +125,53 @@ int main(int argc, char **argv)
             
             file.close();
             
-            //Send cwnd packets to client
+            //Send initial packets to client
             for(int i=0; i < cwnd; i++)
             {
-            		if (sendto(sockfd, &packets[curr_pkt], sizeof(packets[curr_pkt]), 0, 
+            		if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
             		(struct sockaddr *)&cli_addr, clilen) < 0)
                 	error("ERROR sending DATA");
-            		curr_pkt = i;
-            		seq_num += packets[curr_pkt].size;
+            		if(base == seq_num)
+            				start_timer();
+            		seq_num++;
             } 
+            cout << "Sending initial packets to client" << endl;
         				
         }
         
+        //Respond to ACK
         if(packet.type == ACK)
         {
         		//upon ACK, shift the window and send new packet
+        		base = packet.seq_num + 1;
+        		cout << "Sender received ack " << packet.seq_num << endl;
         }
         
-    }
-    
+        //Check for timeout
+        secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
+        if (secondsPassed >= TIMEOUT)
+        {
+        		//Resend all packets up to current sequence number
+            for(int i=base; i < seq_num-1; i++)
+            {
+            		if (sendto(sockfd, &packets[i], sizeof(packets[i]), 0, 
+            		(struct sockaddr *)&cli_addr, clilen) < 0)
+                	error("ERROR sending DATA");
+
+            } 
+        }
+        
+        //Try to send another packet
+        if(seq_num < base + cwnd)
+        {
+            if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
+            (struct sockaddr *)&cli_addr, clilen) < 0)
+                error("ERROR sending DATA");
+            if(base == seq_num)
+            				start_timer();
+            		seq_num++;
+        }
+        
+    } //end of while
+    return 0;
 }

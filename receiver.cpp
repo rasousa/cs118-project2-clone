@@ -3,6 +3,7 @@
 //Usage: ./receiver host port filename (./receiver 192.1.52.113 10000 hello.txt)
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -28,19 +29,22 @@ void error(string msg)
 int main(int argc, char **argv)
 {
     int sockfd, portno, cwnd;
+    float pl, pc;
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t servlen = sizeof(serv_addr);
     string filename;
     struct hostent *server;
     
-    if(argc != 4)
+    if(argc != 6)
     {
-        fprintf(stderr,"usage: server port filename\n");
+        fprintf(stderr,"usage: server port filename pi pc\n");
         exit(0);
     }
     
     portno = atoi(argv[2]);
     filename = argv[3];
+    pl = 100*atof(argv[4]);
+    pc = 100*atof(argv[5]);
     
     server = gethostbyname(argv[1]);
     if(server == NULL)
@@ -81,9 +85,6 @@ int main(int argc, char **argv)
     req.seq_num = 0;
     req.size = filename.length();
     strcpy(req.data, filename.c_str());
-
-    
-    
     
     if (sendto(sockfd, &req, sizeof(req), 0, (struct sockaddr *)&serv_addr, servlen) < 0) {
         error("ERROR sending request");
@@ -92,6 +93,7 @@ int main(int argc, char **argv)
     ofstream file;
     file.open("testing.txt");
     
+    srand((int)time(0));
     while(1)
     {
         //recvfrom dumps the message into packet
@@ -103,6 +105,21 @@ int main(int argc, char **argv)
         {
             total_bytes = packet.size;
             bytes_loaded = 0;
+            continue;
+        }
+        
+        int plrand = rand()%100;
+        int pcrand = rand()%100;
+        
+        if (pl > plrand)
+        {
+            cout << "Packet number: " << packet.seq_num << " lost." << endl;
+            continue;
+        }
+        else if (pc > pcrand)
+        {
+            cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
+            continue;
         }
         
         if(packet.type == DATA)

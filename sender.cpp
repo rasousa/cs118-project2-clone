@@ -21,7 +21,7 @@ using namespace std;
 const int MAX_PKTS = 100;
 
 clock_t startTime;
-const double TIMEOUT = 5; //times out after 5 seconds
+const double TIMEOUT = 3; //times out after 3 seconds
 
 void error(string msg)
 {

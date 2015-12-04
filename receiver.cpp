@@ -94,11 +94,10 @@ int main(int argc, char **argv)
     
     while(1)
     {
-				//recvfrom dumps the message into packet
+        //recvfrom dumps the message into packet
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &serv_addr, &servlen)) < 0)
             error("ERROR receiving message");
         
-        cout << req.size << endl;
         //Basically here is an INIT packet that sends the file size and the filename in packet.data
         if(packet.type == INIT)
         {
@@ -135,9 +134,8 @@ int main(int argc, char **argv)
         if(total_bytes == bytes_loaded)
         {
             file.close();
+            exit(0);
         }
-
-        
     }
     
 }

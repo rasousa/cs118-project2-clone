@@ -42,9 +42,8 @@ void stop_timer()
 int main(int argc, char **argv)
 {
     int sockfd, portno, cwnd;
-    socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
-    
+    socklen_t clilen = sizeof(serv_addr);
     
     if (argc < 3) {
         fprintf(stderr,"usage: port cwnd\n");
@@ -129,7 +128,7 @@ int main(int argc, char **argv)
             init.type = INIT;
             init.size = total_bytes;
             
-            if (sendto(sockfd, &init, sizeof(init), 0, (struct sockaddr *)&serv_addr, clilen) < 0) {
+            if (sendto(sockfd, &init, sizeof(init), 0, (struct sockaddr *)&cli_addr, clilen) < 0) {
                 error("ERROR sending INIT");
             }
             

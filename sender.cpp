@@ -21,7 +21,7 @@ using namespace std;
 const int MAX_PKTS = 100;
 
 clock_t startTime;
-const int TIMEOUT = 5;
+const double TIMEOUT = 5; //times out after 5 seconds
 
 void error(string msg)
 {
@@ -36,7 +36,7 @@ void start_timer()
 
 void stop_timer()
 {
-		startTime = 0;
+		startTime = -1;
 }
 
 int main(int argc, char **argv)
@@ -96,7 +96,6 @@ int main(int argc, char **argv)
         //Got a request from client for a file
         if(packet.type == REQ)
         {
-        		
         		//Open file and break into packets
             file.open(packet.data);
             total_bytes = 0;
@@ -119,8 +118,7 @@ int main(int argc, char **argv)
             		
             		//Add byte to packet data
             		packets[curr_pkt].data[ packets[curr_pkt].size++ ] = c;
-            		total_bytes++;
-            				
+            		total_bytes++;		
             }
             
             file.close();
@@ -144,13 +142,18 @@ int main(int argc, char **argv)
         {
         		//upon ACK, shift the window and send new packet
         		base = packet.seq_num + 1;
+        		if(base == seq_num)
+            		stop_timer();
+            else
+            		start_timer();
         		cout << "Sender received ack " << packet.seq_num << endl;
         }
         
         //Check for timeout
         secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-        if (secondsPassed >= TIMEOUT)
+        if (startTime != -1 && secondsPassed >= TIMEOUT)
         {
+        		cout << "Sender timed out, resending packets starting from " << base << endl;
         		//Resend all packets up to current sequence number
             for(int i=base; i < seq_num-1; i++)
             {
@@ -168,8 +171,9 @@ int main(int argc, char **argv)
             (struct sockaddr *)&cli_addr, clilen) < 0)
                 error("ERROR sending DATA");
             if(base == seq_num)
-            				start_timer();
-            		seq_num++;
+            		start_timer();
+            seq_num++;
+            cout << "Sent packet with sequence number " << seq_num-1 << endl;
         }
         
     } //end of while

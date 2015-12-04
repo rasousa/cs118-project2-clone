@@ -6,9 +6,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <signal.h>	/* signal name macros, and the kill() prototype */
-#include <sys/wait.h>	/* for the waitpid() system call */
-#include <unistd.h>
 
 #include <string>
 #include <iostream>
@@ -20,13 +17,6 @@ using namespace std;
 
 const int MAX_PKTS = 100;
 
-void sigchld_handler(int s)
-{
-    while(waitpid(-1, NULL, WNOHANG) > 0);
-}
-
-void handle_request(int, int, struct sockaddr_in, struct sockaddr_in, socklen_t); /* function prototype */
-
 void error(string msg)
 {
     cerr << msg << endl;
@@ -35,10 +25,9 @@ void error(string msg)
 
 int main(int argc, char **argv)
 {
-    int sockfd, newsockfd, portno, pid, cwnd;
+    int sockfd, portno, cwnd;
     socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
-    struct sigaction sa;          // for signal SIGCHLD
     
     
     if (argc < 3) {
@@ -63,48 +52,6 @@ int main(int argc, char **argv)
     
     cout << "Server bound correctly on port "<< portno << endl;
     
-    
-    //listen for connections
-    listen(sockfd,5);
-     
-     clilen = sizeof(cli_addr);
-     
-     /****** Kill Zombie Processes ******/
-     sa.sa_handler = sigchld_handler; // reap all dead processes
-     sigemptyset(&sa.sa_mask);
-     sa.sa_flags = SA_RESTART;
-     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-         perror("sigaction");
-         exit(1);
-     }
-     /*********************************/
-     
-     while (1) {
-         newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-         
-         if (newsockfd < 0) 
-             perror("ERROR on accept");
-         
-         pid = fork(); //create a new process
-         if (pid < 0)
-             perror("ERROR on fork");
-         
-         if (pid == 0)  { // fork() returns a value of 0 to the child process
-             close(sockfd);
-             //Go to the request handling portion - the main Go Back N bit
-             handle_request(newsockfd, cwnd, serv_addr, cli_addr, clilen);
-             exit(0);
-         }
-         else //returns the process ID of the child process to the parent
-             close(newsockfd); // parent doesn't need this 
-     } /* end of while */
-     return 0; /* we never get here */
-}
-    
-void handle_request (int sockfd, int cwnd, struct sockaddr_in serv_addr, 
-struct sockaddr_in cli_addr, socklen_t clilen)
-{    
-		
     Packet packet, ack;
     memset(&packet, 0, sizeof(packet));
     memset(&ack, 0, sizeof(ack));
@@ -141,7 +88,6 @@ struct sockaddr_in cli_addr, socklen_t clilen)
             		if(packets[curr_pkt].size > PACKET_SIZE)
             		{
             				curr_pkt++;
-            				//curr_byte = 0;
             		}
             		
             		//Initialize other packet data
@@ -155,7 +101,6 @@ struct sockaddr_in cli_addr, socklen_t clilen)
             		
             		//Add byte to packet data
             		packets[curr_pkt].data[ packets[curr_pkt].size++ ] = c;
-            		//packets[curr_pkt].size++;
             		total_bytes++;
             				
             }

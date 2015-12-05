@@ -159,6 +159,7 @@ int main(int argc, char **argv)
         
         while (base < curr_pkt)
         {
+            cout << "Hi! Inside second while loop!" << endl;
 						//Check for timeout
 						secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
 						cout << "seconds passed = " << secondsPassed << endl;
@@ -166,6 +167,7 @@ int main(int argc, char **argv)
 						if (secondsPassed >= TIMEOUT)
 						{
 								cout << "Sender timed out, resending packets starting from " << base << endl;
+								start_timer();
 								//Resend all packets up to current sequence number
 								for(int i=base; i < seq_num-1; i++)
 								{
@@ -178,49 +180,50 @@ int main(int argc, char **argv)
 								} 
 						}
 						
-						if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
-            		error("ERROR receiving message");
+						if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+            {
 				
-						print_packet(&packet); 
+								print_packet(&packet); 
 				
-						int plrand = rand()%100;
-						int pcrand = rand()%100;
+								int plrand = rand()%100;
+								int pcrand = rand()%100;
 				
-						if (pl > plrand)
-						{
-								cout << "Packet number: " << packet.seq_num << " lost." << endl;
-								continue;
-						}
-						else if (pc > pcrand)
-						{
-								cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
-								continue;
-						}						
+								if (pl > plrand)
+								{
+										cout << "Packet number: " << packet.seq_num << " lost." << endl;
+										continue;
+								}
+								else if (pc > pcrand)
+								{
+										cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
+										continue;
+								}						
 				
-						//Respond to ACK
-						if(packet.type == ACK)
-						{
-								//upon ACK, shift the window and send new packet
-								base = packet.seq_num + 1;
-								if(base == seq_num)
-										stop_timer();
-										else
-										start_timer();
-								cout << "Sender received ack " << packet.seq_num << endl;
-						}
+								//Respond to ACK
+								if(packet.type == ACK)
+								{
+										//upon ACK, shift the window and send new packet
+										base = packet.seq_num + 1;
+										if(base == seq_num)
+												stop_timer();
+												else
+												start_timer();
+										cout << "Sender received ack " << packet.seq_num << endl;
+								}
 				
 				
 				
-						//Try to send another packet
-						if(seq_num < base + cwnd)
-						{
-								if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
-								(struct sockaddr *)&cli_addr, clilen) < 0)
-										error("ERROR sending DATA");
-								if(base == seq_num)
-										start_timer();
-								seq_num++;
-								cout << "Sent packet with sequence number " << seq_num-1 << endl;
+								//Try to send another packet
+								if(seq_num < base + cwnd)
+								{
+										if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
+										(struct sockaddr *)&cli_addr, clilen) < 0)
+												error("ERROR sending DATA");
+										if(base == seq_num)
+												start_timer();
+										seq_num++;
+										cout << "Sent packet with sequence number " << seq_num-1 << endl;
+								}
 						}
 				}
         

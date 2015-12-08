@@ -102,11 +102,12 @@ int main(int argc, char **argv)
         
         //Basically here is an INIT packet that sends the file size and the filename in packet.data
         
-        print_packet(&packet);
+        //print_packet(&packet);
         if(packet.type == INIT)
         {
             total_bytes = packet.size;
             bytes_loaded = 0;
+            cout << total_bytes << endl;
             continue;
         }
         
@@ -142,13 +143,15 @@ int main(int argc, char **argv)
             ack.size = bytes_loaded;
             ack.server_portno = ntohs(serv_addr.sin_port);
             ack.client_portno = portno;
-            sprintf(ack.data, "ACK %d", seq_num);
+            //sprintf(ack.data, "ACK %d", seq_num);
             
-            cout << ack.data << endl;
+            //cout << ack.data << endl;
             if (sendto(sockfd, &ack, sizeof(ack), 0, (struct sockaddr *)&serv_addr, servlen) < 0)
                 error("ERROR sending ACK");
             }
         }
+        
+        //cout << total_bytes << " " << bytes_loaded << endl;
         
         if(total_bytes == bytes_loaded)
         {

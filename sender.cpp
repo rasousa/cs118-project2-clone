@@ -18,7 +18,7 @@
 
 using namespace std;
 
-const int MAX_PKTS = 100;
+const int MAX_PKTS = 10000;
 
 clock_t startTime;
 const double TIMEOUT = 1; //times out after 3 seconds
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
         
         //Got a request from client for a file
         
-        print_packet(&packet); 
+        print_packet(&packet);
         if(packet.type == REQ)
         {
         		//Open file and break into packets
@@ -107,9 +107,8 @@ int main(int argc, char **argv)
             while(file.get(c))
             {
             		//Current packet full, move to next one
-            		if(packets[curr_pkt].size > PACKET_SIZE)
+            		if(packets[curr_pkt].size > PACKET_SIZE - 1)
             		{
-            				packets[curr_pkt].size--;
             				curr_pkt++;
             		}
             		
@@ -134,6 +133,7 @@ int main(int argc, char **argv)
             memset(&init, 0, sizeof(init));
             init.type = INIT;
             init.size = total_bytes;
+            cout << "Total bytes " << total_bytes << endl;
             
             if (sendto(sockfd, &init, sizeof(init), 0, (struct sockaddr *)&cli_addr, clilen) < 0) {
                 error("ERROR sending INIT");
@@ -159,14 +159,14 @@ int main(int argc, char **argv)
         
         while (base < curr_pkt)
         {
-            cout << "Hi! Inside second while loop!" << endl;
+            //cout << "Hi! Inside second while loop!" << endl;
 						//Check for timeout
 						secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-						cout << "seconds passed = " << secondsPassed << endl;
-						cout << "start time = " << startTime << endl;
+						//cout << "seconds passed = " << secondsPassed << endl;
+						//cout << "start time = " << startTime << endl;
 						if (secondsPassed >= TIMEOUT)
 						{
-								cout << "Sender timed out, resending packets starting from " << base << endl;
+								//cout << "Sender timed out, resending packets starting from " << base << endl;
 								start_timer();
 								//Resend all packets up to current sequence number
 								for(int i=base; i < seq_num-1; i++)
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 						if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) > 0)
             {
 				
-								print_packet(&packet); 
+								//print_packet(&packet);
 				
 								int plrand = rand()%100;
 								int pcrand = rand()%100;
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 												stop_timer();
 												else
 												start_timer();
-										cout << "Sender received ack " << packet.seq_num << endl;
+										//cout << "Sender received ack " << packet.seq_num << endl;
 								}
 				
 				
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 										if(base == seq_num)
 												start_timer();
 										seq_num++;
-										cout << "Sent packet with sequence number " << seq_num-1 << endl;
+										//cout << "Sent packet with sequence number " << seq_num-1 << endl;
 								}
 						}
 				}

@@ -121,6 +121,16 @@ int main(int argc, char **argv)
         else if (pc > pcrand)
         {
             cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
+            memset(&ack, 0, sizeof(ack));
+            ack.seq_num = seq_num;
+            ack.type = ACK_CORRUPT;
+            ack.size = bytes_loaded;
+            ack.server_portno = ntohs(serv_addr.sin_port);
+            ack.client_portno = portno;
+            sprintf(ack.data, "ACK CORRUPT %d", seq_num);
+            
+            if (sendto(sockfd, &ack, sizeof(ack), 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+                error("ERROR sending ACK");
             continue;
         }
         

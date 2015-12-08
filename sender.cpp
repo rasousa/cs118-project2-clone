@@ -103,7 +103,7 @@ int main(int argc, char **argv)
         tv.tv_usec = 0;
         setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
-            error("ERROR receiving message");
+            cout << "No message received yet" << endl;
         
         //Got a request from client for a file
         
@@ -178,11 +178,11 @@ int main(int argc, char **argv)
 //            cout << "[Base1,Curr] [" << base << "," << curr_pkt << "]" << endl;
             if (timer + TIMEOUT < time(NULL))
             {
-                cout << "Timer " << timer << " Current Time " << time(NULL) << endl;
+                    cout << "Timer " << timer << " Current Time " << time(NULL) << endl;
                     //cout << "Sender timed out, resending packets starting from " << base << endl;
                     //start_timer();
                     //Resend all packets up to current sequence number
-                
+                resend:
                     time(&timer);
                     for(int i=base; i < seq_num; i++)
                     {
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
             if((recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) > 0)
             {
         
-                print_packet(&packet);
+                //print_packet(&packet);
 
                 int plrand = rand()%100;
                 int pcrand = rand()%100;
@@ -215,12 +215,16 @@ int main(int argc, char **argv)
                 }						
 
                 //Respond to ACK
+                if(packet.type == ACK_CORRUPT)
+                {
+                    goto resend;
+                }
                 if(packet.type == ACK)
                 {
                         //upon ACK, shift the window and send new packet
-                        base = packet.seq_num + 1;
-                        if(base == seq_num)
-                            time(&timer);
+                    base = packet.seq_num + 1;
+                    if(base == seq_num)
+                        time(&timer);
                         //cout << "Sender received ack " << packet.seq_num << endl;
                 }
 

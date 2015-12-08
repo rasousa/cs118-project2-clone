@@ -21,7 +21,7 @@ void print_packet(Packet *packet)
     cout << "Client Port: " << packet->client_portno << endl;
     cout << "Sequence Number: " << packet->seq_num << endl;
     cout << "Size: " << packet->size << endl;
-    cout << "Data: " << endl;
+    cout << "Data: " << packet->data << endl;
     //cout << packet->data << endl;
     cout << endl;
 }

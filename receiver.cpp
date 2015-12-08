@@ -107,7 +107,6 @@ int main(int argc, char **argv)
         {
             total_bytes = packet.size;
             bytes_loaded = 0;
-            cout << total_bytes << endl;
             continue;
         }
         
@@ -132,23 +131,25 @@ int main(int argc, char **argv)
                 
                 bytes_loaded = (bytes_loaded >= total_bytes) ? total_bytes : bytes_loaded + packet.size;
                 
-                seq_num++;
+                
                 
                 file << packet.data;
             
-            //Let's send an ack pack. If it's out of order it will send a duplicate.
-            memset(&ack, 0, sizeof(ack));
-            ack.seq_num = seq_num;
-            ack.type = ACK;
-            ack.size = bytes_loaded;
-            ack.server_portno = ntohs(serv_addr.sin_port);
-            ack.client_portno = portno;
-            //sprintf(ack.data, "ACK %d", seq_num);
-            
-            //cout << ack.data << endl;
-            if (sendto(sockfd, &ack, sizeof(ack), 0, (struct sockaddr *)&serv_addr, servlen) < 0)
-                error("ERROR sending ACK");
+                //Let's send an ack pack. If it's out of order it will send a duplicate.
+                memset(&ack, 0, sizeof(ack));
+                ack.seq_num = seq_num;
+                ack.type = ACK;
+                ack.size = bytes_loaded;
+                ack.server_portno = ntohs(serv_addr.sin_port);
+                ack.client_portno = portno;
+                sprintf(ack.data, "ACK %d", seq_num);
+                
+                cout << ack.data << endl;
+                if (sendto(sockfd, &ack, sizeof(ack), 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+                    error("ERROR sending ACK");
+                seq_num++;
             }
+            
         }
         
         //cout << total_bytes << " " << bytes_loaded << endl;

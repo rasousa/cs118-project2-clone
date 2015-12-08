@@ -8,11 +8,13 @@
 #include <netinet/in.h>
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 
 #include <ctime>
 #include <cstdlib>
+#include <time.h>
 
 #include "packet.h"
 
@@ -21,7 +23,7 @@ using namespace std;
 const int MAX_PKTS = 10000;
 
 clock_t startTime;
-const double TIMEOUT = 1; //times out after 3 seconds
+const double TIMEOUT = 2; //times out after 3 seconds
 
 void error(string msg)
 {
@@ -44,6 +46,10 @@ int main(int argc, char **argv)
     int sockfd, portno, cwnd;
     float pl, pc;
     struct sockaddr_in serv_addr, cli_addr;
+    struct timeval tv;
+    
+    
+    time_t timer = 0;
     socklen_t clilen = sizeof(serv_addr);
     
     if (argc < 3) {
@@ -93,12 +99,15 @@ int main(int argc, char **argv)
     {
 
         //recvfrom dumps the message into packet
+        tv.tv_sec = 30000;
+        tv.tv_usec = 0;
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
         if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) < 0)
             error("ERROR receiving message");
         
         //Got a request from client for a file
         
-        print_packet(&packet);
+        //print_packet(&packet);
         if(packet.type == REQ)
         {
         		//Open file and break into packets
@@ -133,7 +142,6 @@ int main(int argc, char **argv)
             memset(&init, 0, sizeof(init));
             init.type = INIT;
             init.size = total_bytes;
-            cout << "Total bytes " << total_bytes << endl;
             
             if (sendto(sockfd, &init, sizeof(init), 0, (struct sockaddr *)&cli_addr, clilen) < 0) {
                 error("ERROR sending INIT");
@@ -143,14 +151,13 @@ int main(int argc, char **argv)
             for(int i=0; i < cwnd; i++)
             {
                 Packet temp = packets[seq_num];
-                //cout << seq_num << ":" << temp.seq_num << "=" << endl;
-                //cout << temp.data << endl;
+                cout << seq_num << ":" << temp.seq_num << endl;
                 
                 if (sendto(sockfd, &temp, sizeof(temp), 0, (struct sockaddr *)&cli_addr, clilen) < 0) {
                     error("ERROR sending DATA");
                 }
                 if(base == seq_num)
-                    start_timer();
+                    time(&timer);
                 seq_num++;
             } 
             cout << "Sending initial packets to client" << endl;
@@ -159,75 +166,82 @@ int main(int argc, char **argv)
         
         while (base < curr_pkt)
         {
+            tv.tv_sec = TIMEOUT;
+            tv.tv_usec = 0;
+            setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
             //cout << "Hi! Inside second while loop!" << endl;
 						//Check for timeout
-						secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-						//cout << "seconds passed = " << secondsPassed << endl;
-						//cout << "start time = " << startTime << endl;
-						if (secondsPassed >= TIMEOUT)
-						{
-								//cout << "Sender timed out, resending packets starting from " << base << endl;
-								start_timer();
-								//Resend all packets up to current sequence number
-								for(int i=base; i < seq_num-1; i++)
-								{
-										Packet temp = packets[i];
-										cout << seq_num << ":" << temp.seq_num << "=" << endl;
-										cout << temp.data << endl;
-										if (sendto(sockfd, &packets[i], sizeof(packets[i]), 0, (struct sockaddr *)&cli_addr, clilen) < 0)
-											error("ERROR sending DATA");
-
-								} 
-						}
-						
-						if((response_length = recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+            //secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
+            //cout << "seconds passed = " << secondsPassed << endl;
+            //cout << "start time = " << startTime << endl;
+            //cout << "Timer " << timer << " Current Time " << time(NULL) << endl;
+//            cout << "[Base1,Curr] [" << base << "," << curr_pkt << "]" << endl;
+            if (timer + TIMEOUT < time(NULL))
             {
-				
-								//print_packet(&packet);
-				
-								int plrand = rand()%100;
-								int pcrand = rand()%100;
-				
-								if (pl > plrand)
-								{
-										cout << "Packet number: " << packet.seq_num << " lost." << endl;
-										continue;
-								}
-								else if (pc > pcrand)
-								{
-										cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
-										continue;
-								}						
-				
-								//Respond to ACK
-								if(packet.type == ACK)
-								{
-										//upon ACK, shift the window and send new packet
-										base = packet.seq_num + 1;
-										if(base == seq_num)
-												stop_timer();
-												else
-												start_timer();
-										//cout << "Sender received ack " << packet.seq_num << endl;
-								}
-				
-				
-				
-								//Try to send another packet
-								if(seq_num < base + cwnd)
-								{
-										if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
-										(struct sockaddr *)&cli_addr, clilen) < 0)
-												error("ERROR sending DATA");
-										if(base == seq_num)
-												start_timer();
-										seq_num++;
-										//cout << "Sent packet with sequence number " << seq_num-1 << endl;
-								}
-						}
-				}
+                cout << "Timer " << timer << " Current Time " << time(NULL) << endl;
+                    //cout << "Sender timed out, resending packets starting from " << base << endl;
+                    //start_timer();
+                    //Resend all packets up to current sequence number
+                
+                    time(&timer);
+                    for(int i=base; i < seq_num; i++)
+                    {
+                        Packet temp = packets[i];
+                        //cout << seq_num << ":" << temp.seq_num << "=" << endl;
+                        if (sendto(sockfd, &packets[i], sizeof(packets[i]), 0, (struct sockaddr *)&cli_addr, clilen) < 0)
+                            error("ERROR sending DATA");
+
+                    }
+            }
+//            cout << "[Base2,Curr] [" << base << "," << curr_pkt << "]" << endl;
+//            cout << "Request ACK" << endl;
+            if((recvfrom(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+            {
         
+                print_packet(&packet);
+
+                int plrand = rand()%100;
+                int pcrand = rand()%100;
+
+                if (pl > plrand)
+                {
+                        cout << "Packet number: " << packet.seq_num << " lost." << endl;
+                        continue;
+                }
+                else if (pc > pcrand)
+                {
+                        cout << "Packet number: " << packet.seq_num << " corrupted." << endl;
+                        continue;
+                }						
+
+                //Respond to ACK
+                if(packet.type == ACK)
+                {
+                        //upon ACK, shift the window and send new packet
+                        base = packet.seq_num + 1;
+                        if(base == seq_num)
+                            time(&timer);
+                        //cout << "Sender received ack " << packet.seq_num << endl;
+                }
+
+
+
+                //Try to send another packet
+                if(seq_num < base + cwnd)
+                {
+                        if (sendto(sockfd, &packets[seq_num], sizeof(packets[seq_num]), 0, 
+                        (struct sockaddr *)&cli_addr, clilen) < 0)
+                            error("ERROR sending DATA");
+                        if(base == seq_num)
+                            time(&timer);
+                        seq_num++;
+                        //cout << "Sent packet with sequence number " << seq_num-1 << endl;
+                }
+            }
+//            cout << "[Base3,Curr] [" << base << "," << curr_pkt << "]" << endl;
+        }
+    }
         
-    } //end of while
+     //end of while
     return 0;
 }
